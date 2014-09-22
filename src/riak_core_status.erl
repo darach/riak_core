@@ -25,22 +25,50 @@
          transfers/0,
          ring_status/0]).
 
--spec(ringready() -> {ok, [atom()]} | {error, any()}).
+%% Status writer API
+-export([parse/3]).
+
+-include("riak_core_status_types.hrl").
+
+-spec parse(status(), fun(), Acc0 :: term()) -> term().
+parse([], Fun, Acc) ->
+    Fun(done, Acc);
+%% Alert is currently the only non-leaf element
+parse([{alert, Elem} | T], Fun, Acc) ->
+    Acc1 = Fun(alert, Acc),
+    Acc2 = parse(Elem, Fun, Acc1),
+    Acc3 = Fun(alert_done, Acc2),
+    parse(T, Fun, Acc3);
+%% Leaf elements
+parse([Elem | T], Fun, Acc) ->
+    Acc1 = Fun(Elem, Acc),
+    parse(T, Fun, Acc1).
+
+-spec ringready() -> status().
+
 ringready() ->
     case get_rings() of
         {[], Rings} ->
             {N1,R1}=hd(Rings),
             case rings_match(hash_ring(R1), tl(Rings)) of
                 true ->
-                    Nodes = [N || {N,_} <- Rings],
-                    {ok, Nodes};
-
+                    Nodes0 = [N || {N,_} <- Rings],
+                    Nodes = lists:map(fun atom_to_list/1, Nodes0),
+                    [{value, true},
+		     {text, "All nodes agree on the ring."},
+                     {column, "Nodes", Nodes}];
                 {false, N2} ->
-                    {error, {different_owners, N1, N2}}
+                    Text =
+                      io_lib:format("Node ~p and ~p list different partition owners\n"
+                          , [N1, N2]),
+                    [{alert, [{value, false},
+                              {text, Text}]}]
             end;
-
         {Down, _Rings} ->
-            {error, {nodes_down, Down}}
+            Down2 = lists:map(fun atom_to_list/1, Down),
+            [{alert, [{value, false},
+                      {text, "All nodes need to be up to check status"},
+                      {column, "Nodes Down", Down2}]}]
     end.
 
 

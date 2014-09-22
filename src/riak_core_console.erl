@@ -30,6 +30,51 @@
          print_groups/1, print_group/1, print_grants/1,
          security_enable/1, security_disable/1, security_status/1, ciphers/1]).
 
+%% Callbacks used by riak_core_status:parse/3
+-export([new_context/0, write_status/2]).
+
+-define(MAX_LINE_LEN, 100).
+-include("riak_core_status_types.hrl").
+
+-record(context, {alert_set=false :: boolean(),
+                  output="" :: iolist()}).
+
+-spec new_context() -> #context{}.
+new_context() ->
+    #context{}.
+
+%% @doc Write status information in console format.
+-spec write_status(elem(), #context{}) -> #context{}.
+write_status(alert, Ctx=#context{alert_set=false}) ->
+    Ctx#context{alert_set=true};
+write_status(alert, Ctx) ->
+    %% TODO: Should we just return an error instead?
+    throw({error, nested_alert, Ctx});
+write_status(alert_done, Ctx) ->
+    Ctx#context{alert_set=false};
+write_status({column, Title, Data}, Ctx=#context{output=Output}) ->
+    Ctx#context{output=Output++write_column(Title, Data)};
+write_status({text, Text}, Ctx=#context{output=Output}) ->
+    Ctx#context{output=Output++Text++"\n"};
+write_status({value, Val}, Ctx=#context{output=Output}) ->
+    Ctx#context{output=Output++write_value(Val)};
+write_status(done, #context{output=Output}) ->
+    Output.
+
+%% A value can be any term. Right now we only match on booleans though.
+write_value(true) ->
+    "TRUE: ";
+write_value(false) ->
+    "FALSE: ".
+
+%% @doc Write a column on a single line.
+-spec write_column(title(), [iolist()]) -> iolist().
+write_column(Title, Items) ->
+    %% Todo: add bold/color for Title when supported
+    lists:foldl(fun(Item, Acc) ->
+                    Acc++" "++Item
+                end, Title++":", Items) ++ "\n".
+
 %% @doc Return for a given ring and node, percentage currently owned and
 %% anticipated after the transitions have been completed.
 pending_claim_percentage(Ring, Node) ->
