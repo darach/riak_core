@@ -46,51 +46,6 @@ print(Header, Spec, Rows) ->
     Table = create_table(Spec, Rows),
     io:format("~ts~n~n~ts~n", [Header, Table]).
 
--spec get_field_widths(pos_integer(), [term()]) ->  [pos_integer()].
-get_field_widths(MaxLineLen, Rows) ->
-    Widths = max_widths(Rows),
-    resize_row(MaxLineLen, Widths).
-
--spec resize_row(pos_integer(), [pos_integer()]) -> [pos_integer()].
-resize_row(MaxLength, Widths) ->
-    Sum = lists:sum(Widths),
-    case Sum > MaxLength of
-	true ->
-	    resize_items(Sum, MaxLength, Widths);
-	false ->
-	    Widths
-    end.
-
--spec resize_items(pos_integer(), pos_integer(), [pos_integer()]) ->
-    [pos_integer()].
-resize_items(Sum, MaxLength, Widths) ->
-    Diff = Sum - MaxLength,
-    NumColumns = length(Widths),
-    case NumColumns > Diff of
-	true ->
-	    Remaining = NumColumns - Diff ,
-	    reduce_widths(1, Remaining, Widths);
-	false ->
-	    PerColumn = Diff div NumColumns + 1,
-	    Remaining = Diff - NumColumns,
-	    reduce_widths(PerColumn, Remaining, Widths)
-    end.
--spec reduce_widths(pos_integer(), pos_integer(), [pos_integers()]) ->
-    [pos_integers()].
-reduce_widths(PerColumn, Total, Widths) ->
-    %% Just subtract one character from each column until we run out.
-    {_, NewWidths} = 
-        lists:foldl(fun(Width, {Remaining, NewWidths}) ->
-		        case Remaining of
-			    0 ->
-				{0, [Width | NewWidths]};
-			    _ ->
-				Rem = Remaining - PerColumn,
-				{Rem, [Width - PerColumn | NewWidths]}
-			end
-		    end, {Total, []}, Widths),
-    NewWidths.
-
 -spec autosize_create_table(schema(), rows()) -> iolist().
 autosize_create_table(Schema, Rows) ->
     BorderSize = 1 + length(hd(Rows)),
@@ -125,6 +80,51 @@ create_table(Spec, [], _Length, IoList) ->
     lists:reverse([BottomBorder | IoList]);
 create_table(Spec, [Row | Rows], Length, IoList) ->
     create_table(Spec, Rows, Length, [row(Spec, Row) | IoList]).
+
+-spec get_field_widths(pos_integer(), [term()]) ->  [pos_integer()].
+get_field_widths(MaxLineLen, Rows) ->
+    Widths = max_widths(Rows),
+    resize_row(MaxLineLen, Widths).
+
+-spec resize_row(pos_integer(), [pos_integer()]) -> [pos_integer()].
+resize_row(MaxLength, Widths) ->
+    Sum = lists:sum(Widths),
+    case Sum > MaxLength of
+	true ->
+	    resize_items(Sum, MaxLength, Widths);
+	false ->
+	    Widths
+    end.
+
+-spec resize_items(pos_integer(), pos_integer(), [pos_integer()]) ->
+    [pos_integer()].
+resize_items(Sum, MaxLength, Widths) ->
+    Diff = Sum - MaxLength,
+    NumColumns = length(Widths),
+    case NumColumns > Diff of
+	true ->
+	    Remaining = NumColumns - Diff ,
+	    reduce_widths(1, Remaining, Widths);
+	false ->
+	    PerColumn = Diff div NumColumns + 1,
+	    Remaining = Diff - NumColumns,
+	    reduce_widths(PerColumn, Remaining, Widths)
+    end.
+-spec reduce_widths(pos_integer(), pos_integer(), [pos_integer()]) ->
+    [pos_integer()].
+reduce_widths(PerColumn, Total, Widths) ->
+    %% Just subtract one character from each column until we run out.
+    {_, NewWidths} = 
+        lists:foldl(fun(Width, {Remaining, NewWidths}) ->
+		        case Remaining of
+			    0 ->
+				{0, [Width | NewWidths]};
+			    _ ->
+				Rem = Remaining - PerColumn,
+				{Rem, [Width - PerColumn | NewWidths]}
+			end
+		    end, {Total, []}, Widths),
+    NewWidths.
 
 -spec get_row_length(list(tuple()), list()) -> list(non_neg_integer()).
 get_row_length(Spec, Rows) ->
