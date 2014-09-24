@@ -22,7 +22,7 @@
 
 %% API
 -export([print/2, print/3,
-         create_table/2]).
+         create_table/2, autosize_create_table/2]).
 
 -include("riak_core_status_types.hrl").
 
@@ -46,7 +46,7 @@ print(Header, Spec, Rows) ->
     Table = create_table(Spec, Rows),
     io:format("~ts~n~n~ts~n", [Header, Table]).
 
--spec autosize_create_table(schema(), rows()) -> iolist().
+-spec autosize_create_table([any()], [[any()]]) -> iolist().
 autosize_create_table(Schema, Rows) ->
     BorderSize = 1 + length(hd(Rows)),
     MaxLineLen = case io:columns() of

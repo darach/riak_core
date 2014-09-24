@@ -62,9 +62,10 @@ write_status({table, Schema, Rows}, Ctx=#context{output=Output}) ->
 write_status(done, #context{output=Output}) ->
     Output.
 
--spec write_table(schema(), rows()) -> iolist().
+-spec write_table([any()], [[any()]]) -> iolist().
 write_table(Schema, Rows) ->
-    riak_core_console_table:print(Schema, Rows).
+    Table = riak_core_console_table:autosize_create_table(Schema, Rows),
+    io_lib:format("~n~ts~n", [Table]).
 
 
 %% A value can be any term. Right now we only match on booleans though.
