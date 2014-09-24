@@ -33,7 +33,6 @@
 %% Callbacks used by riak_core_status:parse/3
 -export([new_context/0, write_status/2]).
 
--define(MAX_LINE_LEN, 100).
 -include("riak_core_status_types.hrl").
 
 -record(context, {alert_set=false :: boolean(),
@@ -58,8 +57,15 @@ write_status({text, Text}, Ctx=#context{output=Output}) ->
     Ctx#context{output=Output++Text++"\n"};
 write_status({value, Val}, Ctx=#context{output=Output}) ->
     Ctx#context{output=Output++write_value(Val)};
+write_status({table, Schema, Rows}, Ctx=#context{output=Output}) ->
+    Ctx#context{output=Output++write_table(Schema, Rows)};
 write_status(done, #context{output=Output}) ->
     Output.
+
+-spec write_table(schema(), rows()) -> iolist().
+write_table(Schema, Rows) ->
+    riak_core_console_table:print(Schema, Rows).
+
 
 %% A value can be any term. Right now we only match on booleans though.
 write_value(true) ->
