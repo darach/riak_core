@@ -126,14 +126,20 @@ reduce_widths(PerColumn, Total, Widths) ->
 		    end, {Total, []}, Widths),
     NewWidths.
 
--spec get_row_length(list(tuple()), list()) -> list(non_neg_integer()).
 get_row_length(Spec, Rows) ->
     Res = lists:foldl(fun({_Name, MinSize}, Total) ->
-                        Longest = max_widths(Rows),
+			Longest = find_longest_field(Rows, length(Total)+1),
                         Size = erlang:max(MinSize, Longest),
                         [Size | Total]
                 end, [], Spec),
     lists:reverse(Res).
+
+-spec find_longest_field(list(), pos_integer()) -> non_neg_integer().
+find_longest_field(Rows, ColumnNo) ->
+        lists:foldl(fun(Row, Longest) ->
+		        erlang:max(Longest,
+			          field_length(lists:nth(ColumnNo,Row)))
+		    end, 0, Rows).
 
 -spec max_widths([term()]) -> list(pos_integer()).
 max_widths([Row]) ->
