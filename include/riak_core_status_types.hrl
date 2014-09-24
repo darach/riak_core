@@ -10,15 +10,13 @@
 -type schema() :: {schema, [title()]}.
 %% A row where the type of each element matches it's place in the schema. A row
 %% is unlabeled data and is only contained inside a table.
--type row() :: {row, [iolist()]}.
+-type row() :: [iolist()].
 -type rows() :: [row()].
-%% A list of the same type of data. It can be used outside or inside a table.
+%% A list of the same type of data. It's really just a labelled list. 
 -type column() :: {column, title(), [iolist()]}.
 -type table() :: {table, schema(), rows()} | {table, [column()]}.
 -type alert() :: {alert, [column() | table() | text()]}.
-%% Use href() because link() is already a type
--type href() :: {link, title(), uri()}.
 -type ratio() :: {ratio, integer(), pos_integer() | neg_integer()}.
 -type elem() :: title() | uri() | text() | schema() | row() | column() | table()
-| alert() | href() | ratio() | value.
+| alert() | ratio() | value.
 -type status() :: [elem()].
