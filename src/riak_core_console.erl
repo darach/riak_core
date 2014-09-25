@@ -75,7 +75,7 @@ write_value(false) ->
     "FALSE: ".
 
 %% @doc Write a column on a single line.
--spec write_column(title(), [iolist()]) -> iolist().
+-spec write_column(iolist(), [iolist()]) -> iolist().
 write_column(Title, Items) ->
     %% Todo: add bold/color for Title when supported
     lists:foldl(fun(Item, Acc) ->
