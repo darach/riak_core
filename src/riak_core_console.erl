@@ -65,7 +65,7 @@ write_status(done, #context{output=Output}) ->
 -spec write_table([any()], [[any()]]) -> iolist().
 write_table(Schema, Rows) ->
     Table = riak_core_console_table:autosize_create_table(Schema, Rows),
-    io_lib:format("~n~ts~n", [Table]).
+    io_lib:format("~ts~n", [Table]).
 
 
 %% A value can be any term. Right now we only match on booleans though.
@@ -75,7 +75,13 @@ write_value(false) ->
     "FALSE: ".
 
 %% @doc Write a column on a single line.
--spec write_column(iolist(), [iolist()]) -> iolist().
+-spec write_column(atom() | iolist(), [atom() | iolist()]) -> iolist().
+write_column(Title, Items) when is_atom(Title) ->
+    write_column(atom_to_list(Title), Items);
+%% Assume all items are of same type
+write_column(Title, Items) when is_atom(hd(Items)) ->
+    Items2 = [atom_to_list(Item) || Item <- Items],
+    write_column(Title, Items2);
 write_column(Title, Items) ->
     %% Todo: add bold/color for Title when supported
     lists:foldl(fun(Item, Acc) ->
@@ -821,19 +827,11 @@ commit_staged([]) ->
     end.
 
 transfer_limit([]) ->
-    {Limits, Down} =
-        riak_core_util:rpc_every_member_ann(riak_core_handoff_manager,
-                                            get_concurrency, [], 5000),
-    io:format("~s~n", [string:centre(" Transfer Limit ", 79, $=)]),
-    io:format("Limit        Node~n"),
-    io:format("~79..-s~n", [""]),
-    lists:foreach(fun({Node, Limit}) ->
-                          io:format("~5b        ~p~n", [Limit, Node])
-                  end, Limits),
-    lists:foreach(fun(Node) ->
-                          io:format("(offline)    ~p~n", [Node])
-                  end, Down),
-    io:format("~79..-s~n", [""]),
+    Status = riak_core_status:transfer_limit(),
+    Output = riak_core_status:parse(Status,
+                                    fun riak_core_console:write_status/2,
+                                    riak_core_console:new_context()),
+    io:format("~s", [Output]),
     io:format("Note: You can change transfer limits with "
               "'riak-admin transfer_limit <limit>'~n"
               "      and 'riak-admin transfer_limit <node> <limit>'~n"),

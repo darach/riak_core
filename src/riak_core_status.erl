@@ -23,6 +23,7 @@
 -export([ringready/0,
          all_active_transfers/0,
          transfers/0,
+	 transfer_limit/0,
          ring_status/0]).
 
 %% Status writer API
@@ -45,7 +46,6 @@ parse([Elem | T], Fun, Acc) ->
     parse(T, Fun, Acc1).
 
 -spec ringready() -> status().
-
 ringready() ->
     case get_rings() of
         {[], Rings} ->
@@ -71,6 +71,21 @@ ringready() ->
                       {column, "Nodes Down", Down2}]}]
     end.
 
+-spec transfer_limit() -> status().
+transfer_limit() ->
+    {Limits, Down} =
+        riak_core_util:rpc_every_member_ann(riak_core_handoff_manager,
+                                            get_concurrency, [], 5000),
+    Schema = [node, limit],
+    Rows = [[Node, Limit] || {Node, Limit} <- Limits],
+    Table = {table, Schema, Rows},
+    case Down of 
+	[] ->
+	    [Table];
+	_ ->
+	    NodesDown = {alert, [{column, "(offline)", Down}]},
+	    [Table, NodesDown]
+    end.
 
 -spec(transfers() -> {[atom()], [{waiting_to_handoff, atom(), integer()} |
                                  {stopped, atom(), integer()}]}).
